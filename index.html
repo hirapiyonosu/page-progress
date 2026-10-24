@@ -83,7 +83,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .band .ub{font:inherit;font-size:12px;background:transparent;color:inherit;border:1px solid currentColor;border-radius:6px;padding:3px 8px;cursor:pointer;opacity:.95;white-space:nowrap}
 .band .ub:disabled{opacity:.4;cursor:default}
 .band .ub:focus-visible{outline:2px solid currentColor;outline-offset:2px}
-@media (max-width:560px){.band .ub .t{display:none}}
+.band .helpbtn .ic{display:none}
+@media (max-width:560px){.band .ub .t,.band .helpbtn .t{display:none}.band .helpbtn .ic{display:inline}}
 @media (max-width:480px){.band h1{font-size:17px}.band .now b{font-size:18px}.band .eyebrow{display:none}.band-in{padding-block:8px;gap:6px}.band .now{gap:8px}.band .undo{gap:4px}.band .ub{padding:3px 7px}.band .helpbtn{padding:3px 9px;font-size:12px}}
 .lead{margin:0;font-size:13px;color:var(--sub)}
 #dialog:empty,#bookbar:empty,#introbox:empty{display:none}
@@ -551,7 +552,7 @@ const HELP = `<article class="help">
       <li>「進み具合」で、終わった割合（％）と、締切まで1日（作業時間を入れたときは1時間）に何ページ分進めればいいか（必要なペース）を確かめます。</li>
     </ol>
     <div class="ex"><b>例：</b>B5・28ページの本を、12/20入稿で作る場合<br>総ページに「28」→ 表紙まわり4P＋本編22P＋巻末2P（あとがき・奥付）が並びます。本編を「24」にすると巻末が0Pに減ります。</div>
-    <p>新しい本を作ると、画面の上のほうに「はじめに」の案内が出ます。閉じた案内は、ここからもう一度出せます。</p>
+    <p>新しい本を作ると、画面の上のほうに「はじめに」の案内が出ます。閉じた案内は、画面最上部の帯の「はじめに」ボタン（スマホでは 🔰）か、ここからもう一度出せます。</p>
     <div class="acts"><button class="ghost" data-act="intro-show">「はじめに」の案内をもう一度出す</button></div>
   </section>
   <section id="h-look">
@@ -566,6 +567,7 @@ const HELP = `<article class="help">
       <tr><td>枠のない文字や、うすい線の枠</td><td>見るだけのところ。押しても何も起きません。</td></tr>
     </table>
     <p>色の意味：<b>青</b>は「注目・選んでいる」、<b>赤</b>は「警告・遅れ・締切」、<b>緑</b>は「順調・完了」、帯の色は「この本の色」です。色だけでなく文字や記号でも同じことがわかるようにしています。カレンダーの札の色は、予定の種類ごとの色です。</p>
+      <p>スマホなど画面の幅がせまいときは、帯のボタンが絵だけになります：↶ 元に戻す・↷ やり直す・📅 カレンダー・⏱ タイマー・🔰 はじめに・？ 使い方。</p>
   </section>
   <section id="h-book">
     <h2>本の管理と保存</h2>
@@ -1163,7 +1165,7 @@ function renderBand(c, left) {
     ${helpOpen ? "" : `<div class="now"><div><b>${Math.floor(c.pct * 100)}</b><span>% 完了</span></div><div><b>${left >= 0 ? left : "−" + (-left)}</b><span>日 ${b.buffer ? "締切" : "入稿"}まで</span></div></div>`}
     ${helpOpen ? "" : `<div class="undo"><button class="ub" data-act="undo" ${(undoStack[current] || []).length ? "" : "disabled"} title="1つ前の状態に戻す（Ctrl+Z）" aria-label="元に戻す">↶<span class="t"> 元に戻す</span></button><button class="ub" data-act="redo" ${(redoStack[current] || []).length ? "" : "disabled"} title="戻したのをやり直す（Ctrl+Y）" aria-label="やり直す">↷<span class="t"> やり直す</span></button></div>
     <div class="undo"><button class="ub ${side === "cal" ? "on" : ""}" data-act="side" data-tab="cal" aria-pressed="${side === "cal"}" title="カレンダー" aria-label="カレンダー">📅<span class="t"> カレンダー</span></button><button class="ub ${side === "timer" ? "on" : ""}" data-act="side" data-tab="timer" aria-pressed="${side === "timer"}" title="集中タイマー" aria-label="集中タイマー">⏱<span class="t" id="band-tm"> ${tmBandText()}</span></button></div>`}
-    <button class="helpbtn" data-act="help">${helpOpen ? "表に戻る" : "使い方"}</button></div>`;
+    <div class="undo">${helpOpen ? "" : `<button class="helpbtn" data-act="intro-show" title="最初の案内を画面の上に出す" aria-label="はじめに"><span class="ic" aria-hidden="true">🔰</span><span class="t">はじめに</span></button>`}<button class="helpbtn" data-act="help" aria-label="${helpOpen ? "表に戻る" : "使い方"}">${helpOpen ? "表に戻る" : `<span class="ic" aria-hidden="true">？</span><span class="t">使い方</span>`}</button></div></div>`;
   const h = $("#band").offsetHeight; if (h) document.documentElement.style.setProperty("--band-h", h + "px");
   const sh = document.querySelector(".sheet-head"); if (sh && sh.offsetHeight) document.documentElement.style.setProperty("--sh-h", sh.offsetHeight + "px");
 }
