@@ -86,7 +86,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 @media (max-width:560px){.band .ub .t{display:none}}
 @media (max-width:480px){.band h1{font-size:17px}.band .now b{font-size:18px}.band .eyebrow{display:none}.band-in{padding-block:8px;gap:6px}.band .now{gap:8px}.band .undo{gap:4px}.band .ub{padding:3px 7px}.band .helpbtn{padding:3px 9px;font-size:12px}}
 .lead{margin:0;font-size:13px;color:var(--sub)}
-#dialog:empty,#bookbar:empty{display:none}
+#dialog:empty,#bookbar:empty,#introbox:empty{display:none}
 .sec-h{display:grid;gap:2px}
 /* 本の選択と保存 */
 .manage{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
@@ -121,7 +121,9 @@ details.snapfold .snaps{padding:0 12px 8px}
 /* はじめての案内 */
 .intro{background:var(--accent-soft);border:1px solid var(--accent);border-radius:10px;padding:14px 16px;display:grid;gap:8px}
 .intro h2{font-size:16px}
-.intro ol{margin:0;padding-left:1.4em;display:grid;gap:4px;font-size:14px}
+.intro ol{margin:0;padding-left:1.4em;display:grid;gap:8px;font-size:14px}
+.intro li .d{display:block;font-size:13px;color:var(--sub)}
+.intro .lead{font-size:13px}
 .intro .acts{display:flex;gap:8px;flex-wrap:wrap}
 /* 本の設定 */
 details.settings{background:var(--panel);border:1px solid var(--line);border-radius:10px}
@@ -505,6 +507,7 @@ input.memo:hover,input.memo:focus{border-bottom-color:var(--line)}
 
 <header class="band" id="band" aria-label="いま開いている本"></header>
 <div class="wrap">
+  <div id="introbox"></div>
   <div id="bookbar"></div>
   <div id="dialog"></div>
   <div id="app"><p class="pnote">読み込み中…</p></div>
@@ -542,11 +545,14 @@ const HELP = `<article class="help">
   <section id="h-start">
     <h2>はじめに</h2>
     <ol>
-      <li>「本の設定」で、タイトル・イベント名・イベント日・入稿予定日を入れます。</li>
-      <li>同じく「本の設定」の「ページ数」で総ページを入れます。表紙から裏表紙までの行が自動で並びます。</li>
+      <li>「本の設定」で、タイトル・入稿予定日と、「ページ数」の欄の総ページを入れます。表紙から裏表紙までの行が自動で並びます。イベント名・イベント日・予備日・印刷所の締切・作業できる日・帯の色・メモは、あとから入れても大丈夫です。</li>
+      <li>必要なら「本の構成を編集」で、工程・ページごとの重み・ゲストのページを自分の本に合わせます。そのままでも使えます。</li>
       <li>作業が進んだら「本の構成」のマスを押します。押すたびに 未 → 途中 → 済 → 未 と変わります。</li>
+      <li>「進み具合」で、終わった割合（％）と、締切まで1日（作業時間を入れたときは1時間）に何ページ分進めればいいか（必要なペース）を確かめます。</li>
     </ol>
     <div class="ex"><b>例：</b>B5・28ページの本を、12/20入稿で作る場合<br>総ページに「28」→ 表紙まわり4P＋本編22P＋巻末2P（あとがき・奥付）が並びます。本編を「24」にすると巻末が0Pに減ります。</div>
+    <p>新しい本を作ると、画面の上のほうに「はじめに」の案内が出ます。閉じた案内は、ここからもう一度出せます。</p>
+    <div class="acts"><button class="ghost" data-act="intro-show">「はじめに」の案内をもう一度出す</button></div>
   </section>
   <section id="h-look">
     <h2>画面の見方</h2>
@@ -563,7 +569,7 @@ const HELP = `<article class="help">
   </section>
   <section id="h-book">
     <h2>本の管理と保存</h2>
-    <p>いちばん上の「本の管理と保存」には、本の切り替え・書き出し／読み込み・控え・元に戻す回数がまとまっています。見出しを押すと閉じたり開いたりでき、閉じた状態は次に開いたときも覚えています。</p>
+    <p>画面上部の「本の管理と保存」には、本の切り替え・書き出し／読み込み・控え・元に戻す回数がまとまっています。最初は閉じています。見出しを押すと開いたり閉じたりでき、その状態は次に開いたときも覚えています。</p>
     <p>何冊でも記録できます。「本の選択」のリストから選ぶと切り替わります。いま開いている本は、画面最上部の帯にいつも表示されます。</p>
     <ul>
       <li><b>＋ 新しい本を作る</b>：空の本を1冊追加します。</li>
@@ -728,7 +734,7 @@ const HELP = `<article class="help">
   </section>
   <section id="h-io">
     <h2>書き出し・読み込み</h2>
-    <p>どちらも、いちばん上の「本の管理と保存」の中にあります。</p>
+    <p>どちらも、画面上部の「本の管理と保存」の中にあります（最初は閉じているので、見出しを押して開きます）。</p>
     <ul>
       <li><b>書き出し</b>：いま開いている本の記録を1つのファイル（.json）にします。「文字をコピー」で、文字として持ち出すこともできます。</li>
       <li><b>読み込み</b>：書き出したファイルを選ぶか、書き出した文字を貼り付けると、その本が1冊追加されます。今ある本は上書きされません。</li>
@@ -742,7 +748,7 @@ const HELP = `<article class="help">
       <li><b>HTMLファイルを開いて使っているとき</b>：そのPCのブラウザに保存されます。ブラウザの閲覧データを消すと記録も消えるので、ときどき「書き出し」でバックアップしてください。</li>
       <li><b>claude.aiのリンクから開いているとき</b>：サインインしているアカウントに保存され、PCとスマホで同じ記録を見られます。ほかの人には見えません。</li>
     </ul>
-    <p><b>書き出しのお知らせ</b>：ブラウザに保存しているときは、最後に書き出してから7日たつと（一度も書き出していなければ作ってから7日で）、いちばん上に書き出しをすすめる案内が出ます。締切の前日にも出ます。「今日は表示しない」で、その日は出なくなります。</p>
+    <p><b>書き出しのお知らせ</b>：ブラウザに保存しているときは、最後に書き出してから7日たつと（一度も書き出していなければ作ってから7日で）、画面上部に書き出しをすすめる案内が出ます。締切の前日にも出ます。「今日は表示しない」で、その日は出なくなります。</p>
   </section>
   <section id="h-faq">
     <h2>よくある質問</h2>
@@ -1084,12 +1090,26 @@ function setPages(which, value) {
 }
 
 // ---- 描画
+function renderIntro(b) {
+  $("#introbox").innerHTML = b.intro && !helpOpen ? `<section class="intro" aria-label="はじめに">
+    <h2>はじめに：この順で使えます</h2>
+    <p class="lead">同人誌の表紙から裏表紙までを1ページずつ並べて、作業の進み具合を記録する表です。${store.kind === "db" ? "記録はあなたのclaude.aiアカウントに" : "記録はこのブラウザに"}自動で保存されます。</p>
+    <ol>
+      <li><b>下の「本の設定」を入れる</b><span class="d">まず入れるもの：タイトル・入稿予定日・総ページ（「ページ数」の欄）<br>あとからでよいもの：イベント名・イベント日・予備日・印刷所の締切・作業できる日・帯の色・メモ</span></li>
+      <li><b>必要なら「本の構成」を自分の本に合わせる</b><span class="d">「本の構成を編集」で、工程（初期はネーム・線画・仕上げ）や、ページごとの重み、ゲストのページを変えられます。そのままでも使えます。</span></li>
+      <li><b>作業が進んだら「本の構成」のマスを押す</b><span class="d">押すたびに 未→途中→済→未 と変わり、済にした日付が残ります。</span></li>
+      <li><b>「進み具合」で確かめる</b><span class="d">終わった割合（％）と、締切まで1日（作業時間を入れたときは1時間）に何ページ分進めればいいか（必要なペース）が出ます。</span></li>
+    </ol>
+    <p class="lead">本を増やす・別の端末に移す・控えを取るときは、すぐ下の「本の管理と保存」を開きます。</p>
+    <div class="acts"><button class="btn" data-act="help">使い方をくわしく見る</button><button class="ghost" data-act="intro-close">この案内を閉じる</button></div>
+  </section>` : "";
+}
 const fmtTime = ms => { const d = new Date(ms); return (d.getMonth() + 1) + "/" + d.getDate() + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()); };
 function renderBookbar() {
   const b0 = book();
   const list = Object.values(books).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
   $("#bookbar").innerHTML = `
-  <details class="settings mgmt" id="mgmt" ${mgmtOpen !== false ? "open" : ""}>
+  <details class="settings mgmt" id="mgmt" ${mgmtOpen === true ? "open" : ""}>
     <summary><span>本の管理と保存<small>本の切り替え・新しい本・書き出し／読み込み・控え・元に戻す回数</small></span></summary>
     <div class="manage">
       <div class="box">
@@ -1205,6 +1225,7 @@ function render() {
   const left = days(t, G0);
   renderBand(c, left);
   renderSide();
+  renderIntro(b);
   if (helpOpen) oddCheck(false);
   if (helpOpen) { $("#bookbar").innerHTML = ""; $("#app").innerHTML = HELP; return; }
   renderBookbar();
@@ -1240,15 +1261,6 @@ function render() {
 
   $("#app").innerHTML = `
   ${backupNotice(b, t)}
-  ${b.intro ? `<section class="intro" aria-label="はじめに">
-    <h2>はじめに：3ステップで使えます</h2>
-    <ol>
-      <li>下の「本の設定」で、タイトル・入稿予定日・総ページを入れる（帯の色もここで選べます）</li>
-      <li>「本の構成」で、終わった作業のマスを押す（押すたびに 未→途中→済）</li>
-      <li>上の数字で、締切までに1日何ページ進めればいいかを確認する</li>
-    </ol>
-    <div class="acts"><button class="btn" data-act="help">使い方をくわしく見る</button><button class="ghost" data-act="intro-close">この案内を閉じる</button></div>
-  </section>` : ""}
   <details class="settings" id="settings" ${settingsOpen ?? b.intro ? "open" : ""}>
     <summary><span>本の設定<small>タイトル・日程・締切・作業できる日・ページ数・帯の色・メモ</small></span></summary>
     <div class="settings-body">
@@ -1931,6 +1943,7 @@ document.addEventListener("click", e => {
     }
     if (act === "help") { helpOpen = !helpOpen; render(); window.scrollTo(0, 0); return; }
     if (act === "intro-close") { b.intro = false; touch(); return; }
+    if (act === "intro-show") { b.intro = true; helpOpen = false; touch(); window.scrollTo(0, 0); return; }
     if (act === "color") { b.color = a.dataset.color; touch(); return; }
     if (act === "add") { insertAtEnd(a.dataset.g, blankRow(a.dataset.g)); touch(); return; }
     if (act === "del") {
