@@ -678,8 +678,8 @@ const HELP = `<article class="help">
       <tr><td>棒グラフの縦線</td><td>集計の起点から自分の締切（予備日がなければ入稿予定日）までのうち、今日がどこか（日数の経過）。作業できる日を設定しているときは、作業できる量で数えます（作業日の経過）。棒が線より左なら遅れ気味です。</td></tr>
       <tr><td>自分の締切まで／入稿まで</td><td>予備日を入れているときは自分の締切までの日数、入れていないときは入稿予定日までの日数。</td></tr>
       <tr><td>必要なペース</td><td>残りの作業を、締切まで作業できる日に同じだけ進めるとしたら、1日（作業時間を使うときは1時間）何ページ分か。</td></tr>
-      <tr><td>最近のペース</td><td>直近7日間に進んだ量を、同じ単位にならしたもの。マスを押した日が2日以上になると出ます。</td></tr>
-      <tr><td>終了見込み</td><td>最近のペースのまま、作業できる日に進めたときに全部終わる日。間に合わないときは「あと何P分減らすか、ペースをどれだけ上げれば間に合うか」も出ます。</td></tr>
+      <tr><td>最近のペース</td><td>直近7日間に進んだ量を、同じ単位にならしたもの。マスを押した日が2日以上になると出ます。記録が7日分たまるまでは、記録を始めた日から数えます。下に「いつから何P分進んだか」も出ます。0.1より小さいときは小数第2位まで出します。</td></tr>
+      <tr><td>終了見込み</td><td>最近のペースのまま、作業できる日に進めたときに全部終わる日。間に合わないときは「あと何P分減らすか、ペースをどれだけ上げれば間に合うか」も出ます。来年以降になるときは年も付きます（例：2027/9/19）。最近あまり進んでいない（またはマスを押していない）と、見込みはとても遠い日になります。</td></tr>
       <tr><td>ネーム・線画・仕上げなど</td><td>工程ごとに、自分のページ（ゲスト以外）のうち「済」になったページ数／自分のページ数。重み0の行（白紙など）は最初から済として数え、重みがある行は0.1でも1ページとして数えます。上の％は重みで計算するので、ページ数とは別の数です。</td></tr>
       <tr><td>ゲスト</td><td>ゲストの行があるときだけ出ます。受け取ったページ数／ゲストのページ数。棒は 依頼済・受領・確認済 の進み具合です。</td></tr>
       <tr><td>総ページ</td><td>ゲストを含めた本全体のページ数。奇数のときは赤く「奇数です」と出ます（画面上部のお知らせについては「ページ数」の節）。</td></tr>
@@ -976,6 +976,10 @@ function setStatus(s, isErr) { const el = $("#status"); el.textContent = s; el.c
 const val = v => v === 2 ? 1 : v === 1 ? book().half / 100 : 0;
 const pct1 = v => String(Math.round(v * 10) / 10);
 const f1 = n => (Math.round(n * 10) / 10).toFixed(1);
+// ペース用：0.1未満は小数2桁まで出す（0.0と出て進んでいないように見えないように）
+const fp = n => n !== 0 && Math.abs(n) < 0.1 ? (Math.round(n * 100) / 100).toFixed(2) : f1(n);
+// 今年でない日付には年を付ける
+const mdy = s => s && s.slice(0, 4) !== today().slice(0, 4) ? s.slice(0, 4) + "/" + md(s) : md(s);
 const rowFrac = r => { if (r.guest) return r.gs / 3; const S = shares(); return r.s.reduce((a, v, k) => a + S[k] * val(v), 0); };
 const rowDone = r => r.w * rowFrac(r);
 function calc() {
@@ -1032,7 +1036,7 @@ function pace(doneNow) {
   const base = hist.filter(e => e.d <= target).pop() || hist[0];
   if (days(base.d, t) < 1) return null;
   const c = sumCap(addDays(base.d, 1), addDays(t, 1));
-  return c > 0 ? { per: (doneNow - base.u) / c, since: base.d } : null;
+  return c > 0 ? { per: (doneNow - base.u) / c, since: base.d, gain: doneNow - base.u } : null;
 }
 function project(remain, per) {
   // 最近のペースのまま、作業できる日に進めたときに終わる日
@@ -1252,7 +1256,7 @@ function render() {
     if (proj <= G0) projNote = (b.buffer ? "自分の締切" : "入稿予定日") + "に間に合う見込み";
     else {
       const cut = remain - p.per * capLeft;
-      projNote = `${b.buffer ? "自分の締切" : "入稿予定日"}より ${days(G0, proj)}日遅れる見込み。` + (need != null ? `あと ${f1(cut)}P分減らすか、ペースを ${f1(need - p.per)}${unit} 上げると間に合います` : "");
+      projNote = `${b.buffer ? "自分の締切" : "入稿予定日"}より ${days(G0, proj)}日遅れる見込み。` + (need != null ? `あと ${f1(cut)}P分減らすか、ペースを ${fp(need - p.per)}${unit} 上げると間に合います` : "");
     }
   } else if (p && p.per <= 0 && remain > 0) projNote = "最近は進んでいないため、見込みを出せません";
   const fixed = pagesOf("front") + pagesOf("end");
@@ -1335,9 +1339,9 @@ function render() {
     <div class="facts">
       <div class="fact"><span class="k">${b.buffer ? "自分の締切まで" : "入稿まで"}</span><span class="v">${left >= 0 ? left : "−" + (-left)}<small>日</small></span><span class="note">${b.buffer ? "入稿予定日まで " + days(t, b.deadline) + "日" : md(b.deadline)}</span></div>
       <div class="fact"><span class="k">残り作業</span><span class="v">${f1(remain)}<small>P分</small></span></div>
-      <div class="fact"><span class="k">必要なペース</span><span class="v">${need == null ? "−" : f1(need)}<small>${unit}</small></span><span class="note">${need == null ? "作業できる日が残っていません" : "この先7日で " + f1(need * sumCap(t, addDays(t, 7))) + "P分"}</span></div>
-      <div class="fact"><span class="k">最近のペース</span><span class="v">${p ? f1(p.per) : "−"}<small>${unit}</small></span><span class="note">${p ? md(p.since) + "から" : "2日分記録がたまると出ます"}</span></div>
-      <div class="fact wide"><span class="k">このペースでの終了見込み</span><span class="v">${proj ? md(proj) : "−"}</span><span class="note ${proj && proj > G0 ? "bad" : ""}">${projNote}</span></div>
+      <div class="fact"><span class="k">必要なペース</span><span class="v">${need == null ? "−" : fp(need)}<small>${unit}</small></span><span class="note">${need == null ? "作業できる日が残っていません" : "この先7日で " + f1(need * sumCap(t, addDays(t, 7))) + "P分"}</span></div>
+      <div class="fact"><span class="k">最近のペース</span><span class="v">${p ? fp(p.per) : "−"}<small>${unit}</small></span><span class="note">${p ? md(p.since) + "から " + f1(p.gain) + "P分進んだ" : "2日分記録がたまると出ます"}</span></div>
+      <div class="fact wide"><span class="k">このペースでの終了見込み</span><span class="v">${proj ? mdy(proj) : "−"}</span><span class="note ${proj && proj > G0 ? "bad" : ""}">${projNote}</span></div>
     </div>
   </section>
 
