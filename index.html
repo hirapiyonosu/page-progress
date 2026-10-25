@@ -678,7 +678,7 @@ const HELP = `<article class="help">
       <tr><td>棒グラフの縦線</td><td>集計の起点から自分の締切（予備日がなければ入稿予定日）までのうち、今日がどこか（日数の経過）。作業できる日を設定しているときは、作業できる量で数えます（作業日の経過）。棒が線より左なら遅れ気味です。</td></tr>
       <tr><td>自分の締切まで／入稿まで</td><td>予備日を入れているときは自分の締切までの日数、入れていないときは入稿予定日までの日数。</td></tr>
       <tr><td>必要なペース</td><td>残りの作業を、締切まで作業できる日に同じだけ進めるとしたら、1日（作業時間を使うときは1時間）何ページ分か。</td></tr>
-      <tr><td>最近のペース</td><td>直近7日間に進んだ量を、同じ単位にならしたもの。マスを押した日が2日以上になると出ます。記録が7日分たまるまでは、記録を始めた日から数えます。下に「いつから何P分進んだか」も出ます。0.1より小さいときは小数第2位まで出します。</td></tr>
+      <tr><td>最近のペース</td><td>直近7日間に進んだ量を、同じ単位にならしたもの。マスを押した日が2日以上になると出ます。記録が7日分たまるまでは、記録を始めた日から数えます。下に「いつから何P分進んだか」も出ます。0.1より小さいときは小数第2位まで出します。重み・比重・行の追加や削除で「終わった量」の数え方が変わったときは、それまでの記録も同じだけずらすので、ペースが急に上がったり下がったりしません。</td></tr>
       <tr><td>終了見込み</td><td>最近のペースのまま、作業できる日に進めたときに全部終わる日。間に合わないときは「あと何P分減らすか、ペースをどれだけ上げれば間に合うか」も出ます。来年以降になるときは年も付きます（例：2027/9/19）。最近あまり進んでいない（またはマスを押していない）と、見込みはとても遠い日になります。</td></tr>
       <tr><td>ネーム・線画・仕上げなど</td><td>工程ごとに、自分のページ（ゲスト以外）のうち「済」になったページ数／自分のページ数。重み0の行（白紙など）は最初から済として数え、重みがある行は0.1でも1ページとして数えます。上の％は重みで計算するので、ページ数とは別の数です。</td></tr>
       <tr><td>ゲスト</td><td>ゲストの行があるときだけ出ます。受け取ったページ数／ゲストのページ数。棒は 依頼済・受領・確認済 の進み具合です。</td></tr>
@@ -940,8 +940,18 @@ function touch(rerender = true) {
     U.push(base[b0.id]); while (U.length > undoMax()) U.shift();
     redoStack[b0.id] = [];
   }
+  const prev = base[b0.id];
   base[b0.id] = clone(b0);
   const b = book(), t = today(), u = Math.round(calc().done * 100) / 100;
+  // マスは変わらず重み・比重・行の増減などで「終わった量」の計算が変わったときは、これまでの記録も同じだけずらす
+  // （ずらさないと、その日に急に進んだ／戻ったように見えて、最近のペースや終了見込みが狂う）
+  if (prev && prev.id === b.id) {
+    const old = new Map(prev.rows.map(r => [r.id, JSON.stringify([r.s, r.gs])]));
+    const same = b.rows.every(r => !old.has(r.id) || old.get(r.id) === JSON.stringify([r.s, r.gs]));
+    const cur = books[b.id]; books[b.id] = prev; const before = calc().done; books[b.id] = cur;
+    const diff = calc().done - before;
+    if (Math.abs(diff) > 1e-9 && same) b.hist = b.hist.map(e => e.d === t ? e : { d: e.d, u: Math.max(0, Math.round((e.u + diff) * 100) / 100) });
+  }
   b.hist = b.hist.filter(e => e.d !== t).concat([{ d: t, u }]);
   b.updatedAt = Date.now();
   dirtyIds.add(b.id);
@@ -1256,7 +1266,7 @@ function render() {
     if (proj <= G0) projNote = (b.buffer ? "自分の締切" : "入稿予定日") + "に間に合う見込み";
     else {
       const cut = remain - p.per * capLeft;
-      projNote = `${b.buffer ? "自分の締切" : "入稿予定日"}より ${days(G0, proj)}日遅れる見込み。` + (need != null ? `あと ${f1(cut)}P分減らすか、ペースを ${fp(need - p.per)}${unit} 上げると間に合います` : "");
+      projNote = `${b.buffer ? "自分の締切" : "入稿予定日"}より ${days(G0, proj)}日遅れる見込み。` + (need != null ? `あと ${f1(cut)}P分減らすか、ペースを${need - p.per >= 0.005 ? " " + fp(need - p.per) + unit + " " : "ほんの少し"}上げると間に合います` : "");
     }
   } else if (p && p.per <= 0 && remain > 0) projNote = "最近は進んでいないため、見込みを出せません";
   const fixed = pagesOf("front") + pagesOf("end");
