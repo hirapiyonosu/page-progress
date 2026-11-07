@@ -498,6 +498,8 @@ input.memo:hover,input.memo:focus{border-bottom-color:var(--line)}
 .stagecfg .sum.ok{color:var(--good)}
 .status{position:fixed;right:max(12px,env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:5;font-size:12px;background:var(--panel);color:var(--sub);border:1px solid var(--line);border-radius:999px;padding:5px 12px;box-shadow:0 2px 8px rgba(0,0,0,.08);max-width:calc(100vw - 24px)}
 .status:empty{display:none}
+.msg{font-size:13px;font-weight:700;color:var(--good,#2f8a5b);align-self:center}
+.msg.bad{color:var(--bad,#c2453c)}
 .status.err{color:var(--bad);border-color:var(--bad)}
 .dialog{background:var(--panel);border:1px solid var(--accent);border-radius:10px;padding:16px;display:grid;gap:10px}
 .dialog textarea{width:100%;min-height:8rem;font-family:var(--f-num);font-size:12px}
@@ -1887,22 +1889,22 @@ async function exportBook() {
   const name = (b.title || "book").replace(/[\\/:*?"<>|]/g, "_") + "_進捗.json";
   showDialog(`<div class="dialog"><h2>書き出し</h2><p>この本の記録をファイルにします。別の端末では「読み込み」でこのファイルか、下の文字をそのまま貼り付けてください。</p>
     <textarea id="ex-text" readonly>${esc(text)}</textarea>
-    <div class="acts"><button class="btn" id="ex-save">ファイルに保存</button><button class="ghost" id="ex-copy">文字をコピー</button><button class="ghost" id="dlg-close">閉じる</button></div></div>`);
+    <div class="acts"><button class="btn" id="ex-save">ファイルに保存</button><button class="ghost" id="ex-copy">文字をコピー</button><button class="ghost" id="dlg-close">閉じる</button><span class="msg" id="ex-msg" role="status"></span></div></div>`);
   const done = () => { b.exportedAt = Date.now(); touch(); };
-  $("#ex-copy").onclick = async () => { try { await navigator.clipboard.writeText(text); setStatus("コピーしました"); done(); } catch (_) { $("#ex-text").select(); setStatus("選択しました。コピーしてください"); done(); } };
+  $("#ex-copy").onclick = async () => { try { await navigator.clipboard.writeText(text); dlgMsg("#ex-msg", "コピーしました"); done(); } catch (_) { $("#ex-text").select(); dlgMsg("#ex-msg", "上の欄を選びました。コピーしてください"); done(); } };
   $("#ex-save").onclick = async () => {
     let dl = null;
     try { dl = window.claude && window.claude.use ? await window.claude.use("downloads") : null; } catch (_) {}
-    if (dl) { try { await dl.save({ filename: name, data: text }); done(); } catch (e) { if (!e || e.code !== "declined") setStatus("保存できませんでした。「文字をコピー」を使ってください", true); } return; }
-    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type: "application/json" })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); done();
+    if (dl) { try { await dl.save({ filename: name, data: text }); done(); dlgMsg("#ex-msg", "ファイルに保存しました"); } catch (e) { if (!e || e.code !== "declined") dlgMsg("#ex-msg", "保存できませんでした。「文字をコピー」を使ってください", true); } return; }
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type: "application/json" })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); done(); dlgMsg("#ex-msg", "ファイルに保存しました");
   };
 }
 function importBook() {
   showDialog(`<div class="dialog"><h2>読み込み</h2><p>書き出したファイルを選ぶか、書き出した文字を貼り付けてください。新しい本として追加されます。</p>
     <input type="file" id="im-file" accept=".json,application/json,text/plain">
     <textarea id="im-text" placeholder="ここに貼り付け"></textarea>
-    <div class="acts"><button class="btn" id="im-go">読み込む</button><button class="ghost" id="dlg-close">閉じる</button></div></div>`);
-  $("#im-file").onchange = e => { const f = e.target.files[0]; if (!f) return; const fr = new FileReader(); fr.onload = () => { $("#im-text").value = fr.result; }; fr.readAsText(f); };
+    <div class="acts"><button class="btn" id="im-go">読み込む</button><button class="ghost" id="dlg-close">閉じる</button><span class="msg" id="im-msg" role="status"></span></div></div>`);
+  $("#im-file").onchange = e => { const f = e.target.files[0]; if (!f) return; const fr = new FileReader(); fr.onload = () => { $("#im-text").value = fr.result; dlgMsg("#im-msg", "ファイルを読みました。「読み込む」を押してください"); }; fr.readAsText(f); };
   $("#im-go").onclick = () => {
     try {
       const data = JSON.parse($("#im-text").value);
@@ -1912,10 +1914,12 @@ function importBook() {
       if (books[b.id]) b.id = uid();
       b.updatedAt = Date.now();
       books[b.id] = b; current = b.id; dirtyIds.add(b.id);
-      showDialog(""); render(); scheduleSave(); setStatus("読み込みました");
-    } catch (_) { setStatus("読み込めませんでした。書き出したファイルか文字か確認してください", true); }
+      dlgMsg("#im-msg", "読み込みました"); $("#im-go").disabled = true; render(); scheduleSave(); setTimeout(() => showDialog(""), 1200);
+    } catch (_) { dlgMsg("#im-msg", "読み込めませんでした。書き出したファイルか文字か確認してください", true); }
   };
 }
+// 書き出し・読み込みの結果は、押したボタンのすぐ横に出して数秒で消す（3つのツール共通）
+function dlgMsg(sel, text, bad) { const el = $(sel); if (!el) return; el.textContent = text; el.className = "msg" + (bad ? " bad" : ""); clearTimeout(el._t); el._t = setTimeout(() => { el.textContent = ""; }, bad ? 6000 : 4000); }
 function showDialog(html) { $("#dialog").innerHTML = html; const c = $("#dlg-close"); if (c) c.onclick = () => showDialog(""); }
 
 // ---- 操作
