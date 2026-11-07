@@ -115,8 +115,9 @@ details.snapfold .snaps{padding:0 12px 8px}
 .editbar{display:flex;gap:6px;flex-wrap:wrap}
 .manage .k{font-size:13px;font-weight:700}
 .manage .acts{display:flex;gap:6px;flex-wrap:wrap}
-.manage .io{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 10px;align-items:center}
-.manage .io .lead{font-size:12px}
+.manage .io-text{display:block;width:100%;min-height:5.5rem;margin:6px 0;font-family:var(--f-num);font-size:12px}
+.manage .k.sub{margin-top:14px}
+.manage input[type=file]{display:block;margin:4px 0;max-width:100%}
 .manage select{width:100%;font-size:15px}
 .where{font-size:12px;color:var(--sub)}
 /* はじめての案内 */
@@ -578,7 +579,7 @@ const HELP = `<article class="help">
     <ul>
       <li><b>＋ 新しい本を作る</b>：空の本を1冊追加します。</li>
       <li><b>この本を複製</b>：ページ構成や工程の設定をそのまま使って、別の本を作ります（前回と同じ構成の本を作るときに便利です）。</li>
-      <li><b>この本を削除</b>：2回押すと削除します。本の削除は「元に戻す」では戻せないので、心配なら先に「書き出し」をしておきます。</li>
+      <li><b>この本を削除</b>：2回押すと削除します。本の削除は「元に戻す」では戻せないので、心配なら先に「ファイルに保存」で書き出しておきます。</li>
     </ul>
   </section>
   <section id="h-set">
@@ -740,16 +741,17 @@ const HELP = `<article class="help">
     <h2>書き出し・読み込み</h2>
     <p>どちらも、画面上部の「本の管理と保存」の中にあります（最初は閉じているので、見出しを押して開きます）。</p>
     <ul>
-      <li><b>書き出し</b>：いま開いている本の記録を1つのファイル（.json）にします。「文字をコピー」で、文字として持ち出すこともできます。</li>
-      <li><b>読み込み</b>：書き出したファイルを選ぶか、書き出した文字を貼り付けると、その本が1冊追加されます。今ある本は上書きされません。</li>
+      <li><b>記録を書き出す</b>：「ファイルに保存」で、いま開いている本の記録を1つのファイル（.json）にします。「文字をコピー」を押すと、同じ内容を文字としてコピーします（メモアプリなどに貼って持ち出せます）。</li>
+      <li><b>記録を読み込む</b>：書き出したファイルを選ぶか、書き出した文字を下の欄に貼り付けて「読み込む」を押すと、その本が1冊追加されます。今ある本は上書きされません。</li>
     </ul>
+    <p>押した結果（「コピーしました」「読み込みました」など）は、ボタンのすぐ横に数秒だけ出ます。同人誌収支ツール・即売会レジも同じ形です。</p>
     <div class="ex"><b>使いどころ：</b><br>・バックアップ：入稿前や大きく変える前に書き出しておく<br>・PCのファイル版 → スマホへ：PCで書き出し → スマホで読み込み<br>・テンプレートとして人に渡す：構成だけ作った本を書き出して渡す</div>
   </section>
   <section id="h-save">
     <h2>保存について</h2>
     <p>マスを押したり文字を変えたりすると、自動で保存されます（右下に「保存しました」と出ます）。保存ボタンはありません。</p>
     <ul>
-      <li><b>HTMLファイルを開いて使っているとき</b>：そのPCのブラウザに保存されます。ブラウザの閲覧データを消すと記録も消えるので、ときどき「書き出し」でバックアップしてください。</li>
+      <li><b>HTMLファイルを開いて使っているとき</b>：そのPCのブラウザに保存されます。ブラウザの閲覧データを消すと記録も消えるので、ときどき「ファイルに保存」でバックアップしてください。</li>
       <li><b>claude.aiのリンクから開いているとき</b>：サインインしているアカウントに保存され、PCとスマホで同じ記録を見られます。ほかの人には見えません。</li>
     </ul>
     <p><b>書き出しのお知らせ</b>：ブラウザに保存しているときは、最後に書き出してから7日たつと（一度も書き出していなければ作ってから7日で）、画面上部に書き出しをすすめる案内が出ます。締切の前日にも出ます。「今日は表示しない」で、その日は出なくなります。</p>
@@ -1138,12 +1140,16 @@ function renderBookbar() {
         <p class="lead">記録した本が ${list.length} 冊あります。リストから選ぶと切り替わります。</p>
       </div>
       <div class="box">
-        <span class="k">記録の保存と移動</span>
-        <div class="io">
-          <button class="ghost" data-act="export">書き出し</button><p class="lead">この本の記録をファイルに保存します。バックアップや、別の端末・人に渡すときに。</p>
-          <button class="ghost" data-act="import">読み込み</button><p class="lead">書き出したファイルから、本を1冊追加します。</p>
-        </div>
-        <p class="where">${store.kind === "db" ? "記録はあなたのclaude.aiアカウントに自動で保存されます（ほかの人には見えません）。" : "記録はこのブラウザに自動で保存されます。別の端末で使うときは「書き出し」→「読み込み」で移せます。"}</p>
+        <span class="k">記録を書き出す</span>
+        <p class="lead">この本の記録をファイルに保存します。バックアップや、別の端末・人に渡すときに使います。</p>
+        <div class="acts"><button class="btn" data-act="ex-save">ファイルに保存</button><button class="ghost" data-act="ex-copy">文字をコピー</button>${ioMsgHtml("ex")}</div>
+        <textarea id="ex-out" class="io-text" readonly hidden></textarea>
+        <span class="k sub">記録を読み込む</span>
+        <p class="lead">書き出したファイルを選ぶか、書き出した文字を下に貼り付けて「読み込む」を押します。新しい本として追加され、今の本はそのまま残ります。</p>
+        <input type="file" id="im-file" accept=".json,application/json,text/plain">
+        <textarea id="im-text" class="io-text" placeholder="ここに書き出した文字を貼り付け"></textarea>
+        <div class="acts"><button class="btn" data-act="im-go">読み込む</button>${ioMsgHtml("im")}</div>
+        <p class="where">${store.kind === "db" ? "記録はあなたのclaude.aiアカウントに自動で保存されます（ほかの人には見えません）。" : "記録はこのブラウザに自動で保存されます。ブラウザのデータを消すと記録も消えるので、ときどきファイルに保存して控えを取ってください。"}</p>
       </div>
       <div class="box full">
         <span class="k">控え（その時点の状態を取っておく）</span>
@@ -1193,7 +1199,7 @@ function backupNotice(b, t) {
   const since = b.exportedAt ? Math.floor((Date.now() - b.exportedAt) / 86400000) : days(b.created, t);
   if (!eve && since < 7) return "";
   const msg = eve ? "締切の前日です。念のため、今の記録を書き出しておきませんか？" : b.exportedAt ? `最後に書き出してから${since}日たちました。` : "この本はまだ一度も書き出していません。";
-  return `<div class="notice" role="note"><p>${msg}記録はこのブラウザの中にあるので、閲覧データを消すと一緒に消えます。ときどき書き出しておくと安心です。</p><span class="acts"><button class="btn" data-act="export">書き出し</button><button class="ghost" data-act="bk-later">今日は表示しない</button></span></div>`;
+  return `<div class="notice" role="note"><p>${msg}記録はこのブラウザの中にあるので、閲覧データを消すと一緒に消えます。ときどき書き出しておくと安心です。</p><span class="acts"><button class="btn" data-act="ex-save">ファイルに保存</button><button class="ghost" data-act="bk-later">今日は表示しない</button></span></div>`;
 }
 function editCancel() {
   editMode = false;
@@ -1884,42 +1890,40 @@ function move(i, dir) {
 function swap(b, x, y) { const i = b.rows.indexOf(x), j = b.rows.indexOf(y); b.rows[i] = y; b.rows[j] = x; }
 
 // ---- 書き出し・読み込み
-async function exportBook() {
-  const b = book(), text = JSON.stringify({ format: "doujin-progress", version: 1, book: b }, null, 1);
-  const name = (b.title || "book").replace(/[\\/:*?"<>|]/g, "_") + "_進捗.json";
-  showDialog(`<div class="dialog"><h2>書き出し</h2><p>この本の記録をファイルにします。別の端末では「読み込み」でこのファイルか、下の文字をそのまま貼り付けてください。</p>
-    <textarea id="ex-text" readonly>${esc(text)}</textarea>
-    <div class="acts"><button class="btn" id="ex-save">ファイルに保存</button><button class="ghost" id="ex-copy">文字をコピー</button><button class="ghost" id="dlg-close">閉じる</button><span class="msg" id="ex-msg" role="status"></span></div></div>`);
+const exportText = () => JSON.stringify({ format: "doujin-progress", version: 1, book: book() }, null, 1);
+const exportName = () => (book().title || "book").replace(/[\\/:*?"<>|]/g, "_") + "_進捗.json";
+async function doExport(kind) {
+  const b = book(), text = exportText();
   const done = () => { b.exportedAt = Date.now(); touch(); };
-  $("#ex-copy").onclick = async () => { try { await navigator.clipboard.writeText(text); dlgMsg("#ex-msg", "コピーしました"); done(); } catch (_) { $("#ex-text").select(); dlgMsg("#ex-msg", "上の欄を選びました。コピーしてください"); done(); } };
-  $("#ex-save").onclick = async () => {
+  if (kind === "save") {
     let dl = null;
     try { dl = window.claude && window.claude.use ? await window.claude.use("downloads") : null; } catch (_) {}
-    if (dl) { try { await dl.save({ filename: name, data: text }); done(); dlgMsg("#ex-msg", "ファイルに保存しました"); } catch (e) { if (!e || e.code !== "declined") dlgMsg("#ex-msg", "保存できませんでした。「文字をコピー」を使ってください", true); } return; }
-    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type: "application/json" })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); done(); dlgMsg("#ex-msg", "ファイルに保存しました");
-  };
+    if (dl) { try { await dl.save({ filename: exportName(), data: text }); done(); ioMsg("ex", "ファイルに保存しました"); } catch (e) { if (!e || e.code !== "declined") ioMsg("ex", "保存できませんでした。「文字をコピー」を使ってください", true); } return; }
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type: "application/json" })); a.download = exportName(); document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); done(); ioMsg("ex", "ファイルに保存しました"); return;
+  }
+  try { await navigator.clipboard.writeText(text); done(); ioMsg("ex", "コピーしました"); }
+  catch (_) { done(); const o = $("#ex-out"); if (o) { o.hidden = false; o.value = text; o.select(); } ioMsg("ex", "下の欄に出しました。選んでコピーしてください"); }
 }
-function importBook() {
-  showDialog(`<div class="dialog"><h2>読み込み</h2><p>書き出したファイルを選ぶか、書き出した文字を貼り付けてください。新しい本として追加されます。</p>
-    <input type="file" id="im-file" accept=".json,application/json,text/plain">
-    <textarea id="im-text" placeholder="ここに貼り付け"></textarea>
-    <div class="acts"><button class="btn" id="im-go">読み込む</button><button class="ghost" id="dlg-close">閉じる</button><span class="msg" id="im-msg" role="status"></span></div></div>`);
-  $("#im-file").onchange = e => { const f = e.target.files[0]; if (!f) return; const fr = new FileReader(); fr.onload = () => { $("#im-text").value = fr.result; dlgMsg("#im-msg", "ファイルを読みました。「読み込む」を押してください"); }; fr.readAsText(f); };
-  $("#im-go").onclick = () => {
-    try {
-      const data = JSON.parse($("#im-text").value);
-      const src = data.book || data;
-      if (!Array.isArray(src.rows)) throw new Error();
-      const b = normalize(src);
-      if (books[b.id]) b.id = uid();
-      b.updatedAt = Date.now();
-      books[b.id] = b; current = b.id; dirtyIds.add(b.id);
-      dlgMsg("#im-msg", "読み込みました"); $("#im-go").disabled = true; render(); scheduleSave(); setTimeout(() => showDialog(""), 1200);
-    } catch (_) { dlgMsg("#im-msg", "読み込めませんでした。書き出したファイルか文字か確認してください", true); }
-  };
+function doImport() {
+  try {
+    const data = JSON.parse($("#im-text").value);
+    const src = data.book || data;
+    if (!Array.isArray(src.rows)) throw new Error();
+    const b = normalize(src);
+    if (books[b.id]) b.id = uid();
+    b.updatedAt = Date.now();
+    books[b.id] = b; current = b.id; dirtyIds.add(b.id);
+    ioMsg("im", "読み込みました（「" + (b.title || "無題") + "」を追加して切り替えました）"); render(); scheduleSave();
+  } catch (_) { ioMsg("im", "読み込めませんでした。書き出したファイルか、書き出した文字をそのまま全部入れてください", true); }
 }
-// 書き出し・読み込みの結果は、押したボタンのすぐ横に出して数秒で消す（3つのツール共通）
-function dlgMsg(sel, text, bad) { const el = $(sel); if (!el) return; el.textContent = text; el.className = "msg" + (bad ? " bad" : ""); clearTimeout(el._t); el._t = setTimeout(() => { el.textContent = ""; }, bad ? 6000 : 4000); }
+// 書き出し・読み込みの結果は、押したボタンのすぐ横に出して数秒で消す（3つのツール共通）。描き直しても消えないよう覚えておく
+const ioNote = {};
+const ioMsgHtml = k => `<span class="msg${ioNote[k] && ioNote[k].bad ? " bad" : ""}" id="${k}-msg" role="status">${ioNote[k] ? esc(ioNote[k].text) : ""}</span>`;
+function ioMsg(k, text, bad) {
+  clearTimeout(ioNote[k] && ioNote[k].t);
+  ioNote[k] = { text, bad, t: setTimeout(() => { delete ioNote[k]; const e = $("#" + k + "-msg"); if (e) e.textContent = ""; }, bad ? 6000 : 4000) };
+  const el = $("#" + k + "-msg"); if (el) { el.textContent = text; el.className = "msg" + (bad ? " bad" : ""); }
+}
 function showDialog(html) { $("#dialog").innerHTML = html; const c = $("#dlg-close"); if (c) c.onclick = () => showDialog(""); }
 
 // ---- 操作
@@ -2040,8 +2044,8 @@ document.addEventListener("click", e => {
       current = Object.values(books).sort((x, y) => (y.updatedAt || 0) - (x.updatedAt || 0))[0].id;
       render(); scheduleSave(); return;
     }
-    if (act === "export") { exportBook(); return; }
-    if (act === "import") { importBook(); return; }
+    if (act === "ex-save" || act === "ex-copy") { doExport(act === "ex-save" ? "save" : "copy"); return; }
+    if (act === "im-go") { doImport(); return; }
     return;
   }
   const c = e.target.closest(".cell");
@@ -2056,6 +2060,7 @@ document.addEventListener("click", e => {
 });
 document.addEventListener("change", e => {
   const el = e.target, b = book();
+  if (el.id === "im-file") { const f = el.files[0]; if (!f) return; const fr = new FileReader(); fr.onload = () => { $("#im-text").value = fr.result; ioMsg("im", "ファイルを読みました。「読み込む」を押してください"); }; fr.readAsText(f); return; }
   if (el.id === "snap-keep") { snapKeep = Math.max(1, Math.round(+el.value || 5)); pendingPrune = false; return; }
   if (el.id === "undo-max") { try { localStorage.setItem(KEY + "-undo-max", String(Math.min(200, Math.max(1, Math.round(+el.value || 30))))); } catch (_) {} renderBookbar(); setStatus("元に戻せる回数を " + undoMax() + " 回にしました"); return; }
   if (el.id === "snap-label") return;
